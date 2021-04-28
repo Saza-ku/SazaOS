@@ -9,7 +9,7 @@
 #include  <Protocol/DiskIo2.h>
 #include  <Protocol/BlockIo.h>
 #include  <Guid/FileInfo.h>
-#include  "frame_buffer_config.hpp"
+#include "frame_buffer_config.hpp"
 #include  "elf.hpp"
 
 // #@@range_begin(struct_memory_map)
@@ -262,7 +262,7 @@ EFI_STATUS EFIAPI UefiMain(
       gop->Mode->FrameBufferSize);
   
   UINT8* frame_buffer = (UINT8*)gop->Mode->FrameBufferBase;
-  for (UINTN i = 0; i < gop->Mode->FrameBufferSize; i++) {
+  for (UINTN i = 0; i < gop->Mode->FrameBufferSize; ++i) {
     frame_buffer[i] = 255;
   }
   // #@@range_end(gop)
@@ -270,7 +270,7 @@ EFI_STATUS EFIAPI UefiMain(
   // #@@range_begin(read_kernel)
   EFI_FILE_PROTOCOL* kernel_file;
   status = root_dir->Open(
-    root_dir, &kernel_file, L"\\kernel.efl",
+    root_dir, &kernel_file, L"\\kernel.elf",
     EFI_FILE_MODE_READ, 0);
   if (EFI_ERROR(status)) {
     Print(L"failed to open file '\\kernel.elf': %r\n", status);
@@ -300,7 +300,7 @@ EFI_STATUS EFIAPI UefiMain(
   status = kernel_file->Read(kernel_file, &kernel_file_size, kernel_buffer);
   if (EFI_ERROR(status)) {
     Print(L"error: %r", status);
-    Halt;
+    Halt();
   }
   // #@@range_end(read_kernel)
 
