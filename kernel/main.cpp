@@ -52,6 +52,8 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
       break;
   }
 
+  console = new(console_buf) Console{*pixel_writer, {0, 0, 0}, {255, 255, 255}};
+
   for (int x = 0; x < frame_buffer_config.horizontal_resolution; ++x) {
     for (int y = 0; y < frame_buffer_config.vertical_resolution; ++y) {
       pixel_writer->Write(x, y, {255, 255, 0});
@@ -60,9 +62,8 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
 
   console = new(console_buf) Console{*pixel_writer, {0, 0, 0}, {255, 255, 255}};
 
-  char buf[128];
   for (int i = 0; i < 27; ++i) {
-    printk("peintk: %d\n", i);
+    printk("printk: %d\n", i);
   }
 
   printk("\nwow!");
