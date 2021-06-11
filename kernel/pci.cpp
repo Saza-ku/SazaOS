@@ -88,6 +88,25 @@ namespace pci {
 	bool isSingleFunctionDevice(uint8_t header_type) {
 		return (header_type & 0x80u) == 0;
 	}
-
 	
+	// PCI バスに繋がったデバイスを探索する
+	Error ScanAllBus() {
+		num_device = 0;
+
+		auto header_type = ReadHeaderType(0, 0, 0);
+		if (IsSingleFunctionDevice(header_type)) {
+			return ScanBus(0);
+		}
+
+		for (uint8_t function = 1; function < 8; ++function) {
+			if (ReadVendorId(0, 0, function) == 0xffffu) {
+				continue;
+			}
+			if (auto err = ScanBus(function)) {
+				return err;
+			}
+		}
+
+		return Error::kSuccess;
+	}
 }
