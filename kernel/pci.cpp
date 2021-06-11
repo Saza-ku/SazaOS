@@ -1,6 +1,6 @@
 /**
  * @file pci.cpp
- * @author Saza-ki
+ * @author Saza-ku
  * @brief PCI バス制御のプログラムを集めたファイル
  * @version 0.1
  * @date 2021-05-01
@@ -43,6 +43,22 @@ namespace {
 	}
 	// #@@range_end(make_address)
 
+}
+
+/** @brief 指定のバス番号の各デバイスをスキャンする
+ * 有効なデバイスを見つけたら ScanDevice を実行する
+ */
+Error ScanBus(uint8_t bus) {
+	for (uint8_t device = 0; device < 32; ++device) {
+		// ベンダ ID が無効値なら continue
+		if (ReadVendorId(bus, device, 0) == 0xffffu) {
+			continue;
+		}
+		if (auto err = ScanDevice(bus, device)) {
+			return err;
+		}
+	}
+	return Error::kSuccess;
 }
 
 namespace pci {
@@ -99,6 +115,7 @@ namespace pci {
 		}
 
 		for (uint8_t function = 1; function < 8; ++function) {
+			// ベンダ ID が無効値なら continue
 			if (ReadVendorId(0, 0, function) == 0xffffu) {
 				continue;
 			}
