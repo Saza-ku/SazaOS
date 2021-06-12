@@ -42,23 +42,45 @@ namespace {
         | (reg_addr & 0xfcu);
   }
   // #@@range_end(make_address)
-}
 
-/** @brief 指定のバス番号の各デバイスをスキャンする
- * 有効なデバイスを見つけたら ScanDevice を実行する
- */
-Error ScanBus(uint8_t bus) {
-  for (uint8_t device = 0; device < 32; ++device) {
-    // ベンダ ID が無効値なら continue
-    if (ReadVendorId(bus, device, 0) == 0xffffu) {
-      continue;
-    }
-    if (auto err = ScanDevice(bus, device)) {
+  Error ScanDevice(uint8_t bus, uint8_t device) {
+    if (auto err = ScanFunction(bus, device, 0)) {
       return err;
     }
+    if (IsSingleFunctionDevice(ReadHeaderType(bus, device, 0))) {
+      return Error::kSuccess;
+    }
+
+    for (uint8_t function = 1; function < 8; ++function) {
+      // ベンダ ID が無効なら continue
+      if (ReadVendorId(bus, device, function) == 0xffffu) {
+        continue;
+      }
+      if (auto err = ScanFunction(bus, device, function)) {
+        return err;
+      }
+    }
+    return Error::kSuccess;
   }
-  return Error::kSuccess;
+
+  /** @brief 指定のバス番号の各デバイスをスキャンする
+   * 有効なデバイスを見つけたら ScanDevice を実行する
+   */
+  Error ScanBus(uint8_t bus) {
+    for (uint8_t device = 0; device < 32; ++device) {
+      // ベンダ ID が無効値なら continue
+      if (ReadVendorId(bus, device, 0) == 0xffffu) {
+        continue;
+      }
+      if (auto err = ScanDevice(bus, device)) {
+        return err;
+      }
+    }
+    return Error::kSuccess;
+  }
 }
+
+
 
 namespace pci {
   // #@@range_begin(config_addr_data)
