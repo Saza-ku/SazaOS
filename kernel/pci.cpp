@@ -43,6 +43,29 @@ namespace {
   }
   // #@@range_end(make_address)
 
+  /** @brief 指定のファンクションを devices に追加する。
+   * もし PCI-PCI ブリッジなら、セカンダリパスに対し ScanBus を実行する。
+   */
+  Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function) {
+    auto header_type = ReadHeaderType(bus, device, function);
+    if (auto err = AddDevice(bus, device, function, header_type)) {
+      return err;
+    }
+
+    auto class_code = ReadClassCode(bus, device, function);
+    uint8_t base = (class_code >> 24) & 0xffu;
+    uint8_t sub = (class_code >> 16) & 0xffu;
+
+    if (base == 0x06u && sub == 0x04u) {
+      // standard PCI-PCI bridge
+      auto bus_numbers = ReadBusNumbers(bus, device, function);
+      uint8_t secondary_bus = (bus_numbers >> 8) & 0xffu;
+      return ScanBus(secondary_bus);
+    }
+
+    return Error::kSuccess;
+  }
+
   Error ScanDevice(uint8_t bus, uint8_t device) {
     if (auto err = ScanFunction(bus, device, 0)) {
       return err;
