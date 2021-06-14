@@ -43,6 +43,17 @@ namespace {
   }
   // #@@range_end(make_address)
 
+  Error AddDevice(uint8_t bus, uint8_t device,
+                  uint8_t function, uint8_t header_type) {
+    if (num_device == devices.size()) {
+      return Error::kFull;
+    }
+
+    devices[num_device] = Device{bus, device, function, header_type};
+    ++num_device;
+    return Error::kSuccess;
+  }
+
   /** @brief 指定のファンクションを devices に追加する。
    * もし PCI-PCI ブリッジなら、セカンダリパスに対し ScanBus を実行する。
    */
