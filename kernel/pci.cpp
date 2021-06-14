@@ -54,6 +54,8 @@ namespace {
     return Error::kSuccess;
   }
 
+  Error ScanBus(uint8_t bus);
+
   /** @brief 指定のファンクションを devices に追加する。
    * もし PCI-PCI ブリッジなら、セカンダリパスに対し ScanBus を実行する。
    */
@@ -156,7 +158,7 @@ namespace pci {
     return ReadData();
   }
 
-  bool isSingleFunctionDevice(uint8_t header_type) {
+  bool IsSingleFunctionDevice(uint8_t header_type) {
     return (header_type & 0x80u) == 0;
   }
   
