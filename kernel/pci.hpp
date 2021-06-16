@@ -24,6 +24,30 @@ namespace pci {
 	const uint16_t kConfigData = 0x0cfc;
 	// #@@range_end(config_addr)
 
+	/** @brief PCI デバイスのクラスコード */
+	struct ClassCode {
+		uint8_t base, sub, interface;
+
+		/** @brief ベースクラスが等しい場合に真を返す */
+		bool Match(uint8_t b) { return b == base; }
+		/** @brief ベースクラスとサブクラスが等しい場合に真を返す */
+		bool Match (uint8_t b, uint8_t s) { return Match(b) && s == sub; }
+		/** @brief ベース、サブ、インターフェースが等しい場合に真を返す */
+		bool Match(uint8_t b, uint8_t s, uint8_t i) {
+			return Match(b, s) && i == interface;
+		}
+	};
+
+	/** @brief PCI デバイスを操作するための基礎データを格納する
+	 * 
+	 * バス番号、デバイス番号、ファンクション番号はデバイスを特定するのに必須
+	 * その他の情報は単に利便性のために加えてある
+	*/
+	struct Device {
+		uint8_t bus, device, function, header_type;
+		ClassCode class_code;
+	};
+
 	/** @brief CONFIG_ADDRESS に指定された整数を書き込む */
 	void WriteAddress(uint32_t address);
 	/** @brief CONFIG_DATA に指定された整数を書き込む */
@@ -58,15 +82,6 @@ namespace pci {
 
 	/** @brief 単一ファンクションの場合に真を返す */
 	bool IsSingleFunctionDevice(uint8_t header_type);
-
-	/** @brief PCI デバイスを操作するための基礎データを格納する
-	 * 
-	 * バス番号、デバイス番号、ファンクション番号はデバイスを特定するのに必須
-	 * その他の情報は単に利便性のために加えてある
-	*/
-	struct Device {
-		uint8_t bus, device, function, header_type;
-	};
 
 	// #@@range_begin(var_devices)
 	/** @brief ScanAllBus() により発見された PCI デバイスの一覧 */
