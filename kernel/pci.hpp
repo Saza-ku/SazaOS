@@ -69,6 +69,10 @@ namespace pci {
   */
   uint32_t ReadClassCode(uint8_t bus, uint8_t device, uint8_t function);
 
+  inline uint16_t ReadVendorId(const Device& dev) {
+    return ReadVendorId(dev.bus, dev.device, dev.function);
+  }
+
   /** @brief バス番号レジスタを読み取る (ヘッダタイプ 1 用)
    * 
    * 返される 32 ビット整数の構造は以下の通り

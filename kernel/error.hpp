@@ -5,10 +5,27 @@
 class Error {
   public:
     enum Code {
-      kSuccess,
-      kFull,
-      kEmpty,
-      kLastOfCode,
+    kSuccess,
+    kFull,
+    kEmpty,
+    kNoEnoughMemory,
+    kIndexOutOfRange,
+    kHostControllerNotHalted,
+    kInvalidSlotID,
+    kPortNotConnected,
+    kInvalidEndpointNumber,
+    kTransferRingNotSet,
+    kAlreadyAllocated,
+    kNotImplemented,
+    kInvalidDescriptor,
+    kBufferTooSmall,
+    kUnknownDevice,
+    kNoCorrespondingSetupStage,
+    kTransferFailed,
+    kInvalidPhase,
+    kUnknownXHCISpeedID,
+    kNoWaiter,
+    kLastOfCode,  // この列挙子は常に最後に配置する
     };
 
     Error(Code code) : code_{code} {}

@@ -13,6 +13,7 @@
 #include "font.hpp"
 #include "console.hpp"
 #include "pci.hpp"
+#include "logger.hpp"
 
 void operator delete(void* obj) noexcept {
 }
@@ -128,8 +129,23 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
   // Intel 製を優先して xHC を探す
   pci::Device* xhc_dev = nullptr;
   for (int i = 0; i < pci::num_device; ++i) {
-    if (pci::devices[i].class_code)
+    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x30u)) {
+      xhc_dev = &pci::devices[i];
+
+      if (0x8086 == pci::ReadVendorId(*xhc_dev)) {
+        break;
+      }
+    }
   }
+
+  if (xhc_dev) {
+    Log(kInfo, "xHC has been found: %d.%d.%d\n",
+        xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+  }
+
+  // Base Address Register 0 (BAR0) に
+  // MMIO アドレスが書かれているので、それを読み取る
+  const WithError<uint64_t>
   
   while (1) __asm__("hlt");
 }
