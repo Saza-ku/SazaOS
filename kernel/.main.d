@@ -33,4 +33,5 @@ main.o: main.cpp \
   /home/vscode/osbook/devenv/x86_64-elf/include/assert.h \
   /home/vscode/osbook/devenv/x86_64-elf/include/_ansi.h \
   /home/vscode/osbook/devenv/x86_64-elf/include/c++/v1/functional \
-  /home/vscode/osbook/devenv/x86_64-elf/include/c++/v1/bit error.hpp
+  /home/vscode/osbook/devenv/x86_64-elf/include/c++/v1/bit error.hpp \
+  logger.hpp
