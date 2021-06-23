@@ -73,6 +73,12 @@ namespace pci {
     return ReadVendorId(dev.bus, dev.device, dev.function);
   }
 
+  /** @brief 指定された PCI デバイスの 32 ビットレジスタを読み取る */
+  uint32_t ReadConfReg(const Device& dev, uint8_t reg_addr);
+
+  /** @brief 指定された PCI デバイスの 32 ビットレジスタに書き込む */
+  void WriteConfReg(const Device& dev, uint8_t reg_addr, uint32_t value);
+
   /** @brief バス番号レジスタを読み取る (ヘッダタイプ 1 用)
    * 
    * 返される 32 ビット整数の構造は以下の通り
@@ -95,4 +101,10 @@ namespace pci {
    * 発見したデバイスの数を num_devices に設定する
    */
   Error ScanAllBus();
+
+  constexpr uint8_t CalcBarAddress(unsigned int bar_index) {
+    return 0x10 + 4 * bar_index;
+  }
+
+  WithError<uint64_t> ReadBar(Device& device, unsigned int bar_index);
 }

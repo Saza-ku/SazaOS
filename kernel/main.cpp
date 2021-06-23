@@ -145,7 +145,7 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
 
   // Base Address Register 0 (BAR0) に
   // MMIO アドレスが書かれているので、それを読み取る
-  const WithError<uint64_t>
+  const WithError<uint64_t> xhc_bar = pci::ReadBar
   
   while (1) __asm__("hlt");
 }
