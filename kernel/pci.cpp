@@ -200,7 +200,7 @@ namespace pci {
     const auto bar = ReadConfReg(device, addr);
 
     // 32 bit address
-    if ((var & 4u) == 0) {
+    if ((bar & 4u) == 0) {
       return {bar, MAKE_ERROR(Error::kSuccess)};
     }
 
