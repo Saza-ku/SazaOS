@@ -75,11 +75,12 @@ int printk(const char* format, ...) {
   return result;
 }
 
+// EHCI で制御する設定から、xHCI で制御する設定に切り替える
 void SwitchEhci2Xhci(const pci::Deivce& xhc_dev) {
   bool intel_ehc_exist = false;
   for (int i = 0; i < pci::num_device; ++i) {
-    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x20u)
-      && 0x8086 == pci::ReadVendorId(pci::devices[i])) {
+    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x20u) /* EHCI */
+      && 0x8086 == pci::ReadVendorId(pci::devices[i] /* Intel */)) {
       intel_ehc_exist = true;
       break;
     }
