@@ -10,6 +10,7 @@
 
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
+#include "mouse.hpp"
 #include "font.hpp"
 #include "console.hpp"
 #include "pci.hpp"
@@ -75,7 +76,12 @@ int printk(const char* format, ...) {
   return result;
 }
 
+char mouse_cursor_buf[sizeof(MouseCursor)];
+MouseCursor* mouse_cursor;
 
+void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
+  mouse_cursor->MoveRelative({displacement_x, displacement_y});
+}
 
 // EHCI で制御する設定から、xHCI で制御する設定に切り替える
 void SwitchEhci2Xhci(const pci::Deivce& xhc_dev) {
