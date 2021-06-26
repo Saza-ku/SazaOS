@@ -75,6 +75,8 @@ int printk(const char* format, ...) {
   return result;
 }
 
+
+
 // EHCI で制御する設定から、xHCI で制御する設定に切り替える
 void SwitchEhci2Xhci(const pci::Deivce& xhc_dev) {
   bool intel_ehc_exist = false;
@@ -189,6 +191,8 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
 
   Log(kInfo, "xHC starting\n");
   xhc.Run();
+
+  usb::HIDMouseDriver::default_observer = MouseObserver;
   
   while (1) __asm__("hlt");
 }
