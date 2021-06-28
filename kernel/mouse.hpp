@@ -4,7 +4,7 @@
  * マウス制御プログラム
  */
 
-#pragma
+#pragma once
 
 #include "graphics.hpp"
 
