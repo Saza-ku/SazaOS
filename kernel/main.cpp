@@ -84,7 +84,7 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
 }
 
 // EHCI で制御する設定から、xHCI で制御する設定に切り替える
-void SwitchEhci2Xhci(const pci::Deivce& xhc_dev) {
+void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
   bool intel_ehc_exist = false;
   for (int i = 0; i < pci::num_device; ++i) {
     if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x20u) /* EHCI */
@@ -97,7 +97,7 @@ void SwitchEhci2Xhci(const pci::Deivce& xhc_dev) {
     return;
   }
 
-  uint32_t superspeed_ports = pci::ReadConfReg(shc_dev, 0xdc); // USB3PRM
+  uint32_t superspeed_ports = pci::ReadConfReg(xhc_dev, 0xdc); // USB3PRM
   pci::WriteConfReg(xhc_dev, 0xd8, superspeed_ports); // USB3_PSSEN
   uint32_t ehci2xhci_ports = pci::ReadConfReg(xhc_dev, 0xd4); // XUSB2PRM
   pci::WriteConfReg(xhc_dev, 0xd0, ehci2xhci_ports); // XUSB2PR
@@ -199,6 +199,24 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
   xhc.Run();
 
   usb::HIDMouseDriver::default_observer = MouseObserver;
+
+  for (int i = 1; i <= xhc.MaxPorts(); ++i) {
+    auto port = xhc.PortAt(i);
+    Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
+
+    if (port.IsConnected()) {
+      if (auto err = ConfigurePort(xhc, port)) {
+        Log(kError, "failed to configure port: %s at %s:%d≠n",
+            err.Name(), err.File(), err.Line());
+        continue;
+      }
+    }
+  }
   
-  while (1) __asm__("hlt");
+  while (1) {
+    if (auto err = ProcessEvent(xhc)) {
+      Log(kError, "Error while ProcessingEvent: &s at %s:%d\n",
+          err.Name(), err.File(), err.Line());
+    }
+  }
 }

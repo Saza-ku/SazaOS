@@ -82,7 +82,7 @@ class Error {
   const char* file_;
 };
 
-#define MAKE_ERROR(code) Error((code), __FILE__, __LINE__);
+#define MAKE_ERROR(code) Error((code), __FILE__, __LINE__)
 
 template <class T>
 struct WithError {
