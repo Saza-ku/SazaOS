@@ -4,6 +4,7 @@
 
 ## 写経してない部分
 ### osbook_day06c
+- Doxyfile
 - libcxx_support.cpp
 - register.hpp
 - usb/
