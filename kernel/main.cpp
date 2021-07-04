@@ -108,17 +108,13 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
     *pixel_writer, kDesktopFGColor, kDesktopBGColor
   };
   printk("Welcome to SazaOS!\n");
+  SetLogLevel(kWarn);
 
-  for (int dy = 0; dy < kMouseCursorHeight; ++dy) {
-    for (int dx = 0; dx < kMouseCursorWidth; ++dx) {
-      if (mouse_cursor_shape[dy][dx] == '@') {
-        pixel_writer->Write(200+dx, 100+dy, {0, 0, 0});
-      } else if (mouse_cursor_shape[dy][dx] == '.') {
-        pixel_writer->Write(200+dx, 100+dy, {255, 255, 255});
-      }
-    }
-  }
+  mouse_cursor = new(mouse_cursor_buf) MouseCursor{
+    pixel_writer, kDesktopBGColor, {300, 200}
+  };
 
+  // PCI デバイスを全部見つける
   auto err = pci::ScanAllBus();
   printk("ScanAllBus: %s\n", err.Name());
   printk("NumOfDevices: %d\n", pci::num_device);
@@ -135,9 +131,11 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
   // Intel 製を優先して xHC を探す
   pci::Device* xhc_dev = nullptr;
   for (int i = 0; i < pci::num_device; ++i) {
+    // devices[i] が xHC かどうか
     if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x30u)) {
       xhc_dev = &pci::devices[i];
 
+      // Intel 製かどうか
       if (0x8086 == pci::ReadVendorId(*xhc_dev)) {
         break;
       }
@@ -152,9 +150,9 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
   // Base Address Register 0 (BAR0) に
   // MMIO アドレスが書かれているので、それを読み取る
   const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
-  Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
+  Log(kWarn, "ReadBar: %s\n", xhc_bar.error.Name());
   const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
-  Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
+  Log(kWarn, "xHC mmio_base = %08lx\n", xhc_mmio_base);
 
   usb::xhci::Controller xhc{xhc_mmio_base};
 
@@ -186,7 +184,7 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config) {
   
   while (1) {
     if (auto err = ProcessEvent(xhc)) {
-      Log(kError, "Error while ProcessingEvent: &s at %s:%d\n",
+      Log(kDebug, "Error while ProcessingEvent: &s at %s:%d\n",
           err.Name(), err.File(), err.Line());
     }
   }
