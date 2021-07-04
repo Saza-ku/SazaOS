@@ -2,12 +2,14 @@
 
 # Prerequisites
 *.d
+.*.d
 
 # Object files
 *.o
 *.ko
 *.obj
 *.elf
+.*.o
 
 # Linker output
 *.ilk
@@ -88,5 +90,3 @@ dkms.conf
 *.exe
 *.out
 *.app
-
-
