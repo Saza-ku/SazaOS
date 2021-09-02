@@ -10,5 +10,9 @@
       "**/*.o": true,
       "**/*.d": true,
       "**/*.elf": true,
+    },
+    "files.associations": {
+      "array": "cpp",
+      "cstddef": "cpp"
     }
   }
