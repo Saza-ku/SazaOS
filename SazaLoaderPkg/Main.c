@@ -12,7 +12,6 @@
 #include "frame_buffer_config.hpp"
 #include  "elf.hpp"
 
-// #@@range_begin(struct_memory_map)
 struct MemoryMap {
   UINTN buffer_size;
   VOID* buffer;
@@ -21,9 +20,7 @@ struct MemoryMap {
   UINTN descriptor_size;
   UINT32 descriptor_version;
 };
-// #@@range_end(struct_memory_map)
 
-// #@@range_begin(get_memory_map)
 EFI_STATUS GetMemoryMap(struct MemoryMap* map) {
   if (map->buffer == NULL) {
     return EFI_BUFFER_TOO_SMALL;
@@ -37,9 +34,7 @@ EFI_STATUS GetMemoryMap(struct MemoryMap* map) {
       &map->descriptor_size,
       &map->descriptor_version);
 }
-// #@@range_end(get_memory_map)
 
-// #@@range_begin(get_memory_type)
 const CHAR16* GetMemoryTypeUnicode(EFI_MEMORY_TYPE type) {
   switch (type) {
     case EfiReservedMemoryType: return L"EfiReservedMemoryType";
@@ -61,9 +56,7 @@ const CHAR16* GetMemoryTypeUnicode(EFI_MEMORY_TYPE type) {
     default: return L"InvalidMemoryType";
   }
 }
-// #@@range_end(get_memory_type)
 
-// #@@range_begin(save_memory_map)
 EFI_STATUS SaveMemoryMap(struct MemoryMap* map, EFI_FILE_PROTOCOL* file) {
   CHAR8 buf[256];
   UINTN len;
@@ -93,7 +86,6 @@ EFI_STATUS SaveMemoryMap(struct MemoryMap* map, EFI_FILE_PROTOCOL* file) {
 
   return EFI_SUCCESS;
 }
-// #@@range_end(save_memory_map)
 
 EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL** root) {
   EFI_LOADED_IMAGE_PROTOCOL* loaded_image;
@@ -165,7 +157,6 @@ void Halt(void) {
   while (1) __asm__("hlt");
 }
 
-// #@@range_begin(calc_addr_func)
 void CalcLoadAddressRange(Elf64_Ehdr* ehdr, UINT64* first, UINT64* last) {
   Elf64_Phdr* phdr = (Elf64_Phdr*)((UINT64)ehdr + ehdr->e_phoff);
   *first = MAX_UINT64;
@@ -179,7 +170,6 @@ void CalcLoadAddressRange(Elf64_Ehdr* ehdr, UINT64* first, UINT64* last) {
   }
 }
 
-// #@@range_begin(copy_segm_func)
 void CopyLoadSegments(Elf64_Ehdr* ehdr) {
   Elf64_Phdr* phdr = (Elf64_Phdr*)((UINT64)ehdr + ehdr->e_phoff);
   // プログラムヘッダから、LOAD セグメントを取得してコピーする
@@ -206,7 +196,6 @@ EFI_STATUS EFIAPI UefiMain(
   
   Print(L"Hello, Mikan World!\n");
 
-  // #@@range_begin(get_memory_map)
   CHAR8 memmap_buf[4096 * 4];
   struct MemoryMap memmap = {sizeof(memmap_buf), memmap_buf, 0, 0, 0, 0};
   status = GetMemoryMap(&memmap);
@@ -241,9 +230,7 @@ EFI_STATUS EFIAPI UefiMain(
       Halt();
     }
   }
-  // #@@range_end(get_memory_map)
 
-  // #@@range_begin(gop)
   EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
   status = OpenGOP(image_handle, &gop);
   if(EFI_ERROR(status)) {
@@ -265,9 +252,7 @@ EFI_STATUS EFIAPI UefiMain(
   for (UINTN i = 0; i < gop->Mode->FrameBufferSize; ++i) {
     frame_buffer[i] = 255;
   }
-  // #@@range_end(gop)
 
-  // #@@range_begin(read_kernel)
   EFI_FILE_PROTOCOL* kernel_file;
   status = root_dir->Open(
     root_dir, &kernel_file, L"\\kernel.elf",
@@ -302,9 +287,7 @@ EFI_STATUS EFIAPI UefiMain(
     Print(L"error: %r", status);
     Halt();
   }
-  // #@@range_end(read_kernel)
 
-  // #@@range_begin(alloc_pages)
   Elf64_Ehdr* kernel_ehdr = (Elf64_Ehdr*)kernel_buffer;
   UINT64 kernel_first_addr, kernel_last_addr;
   CalcLoadAddressRange(kernel_ehdr, &kernel_first_addr, &kernel_last_addr);
@@ -316,9 +299,7 @@ EFI_STATUS EFIAPI UefiMain(
     Print(L"failed to allocate pages: %r\n", status);
     Halt();
   }
-  // #@@range_end(alloc_pages)
 
-  // #@@range_begin(copy_segments)
   CopyLoadSegments(kernel_ehdr);
   Print(L"Kernel: 0x%0lx\n", kernel_first_addr, kernel_last_addr);
 
@@ -327,10 +308,8 @@ EFI_STATUS EFIAPI UefiMain(
     Print(L"failed to free pool: %r\n", status);
     Halt();
   }
-  // #@@range_end(copy_segments)
 
   // ブートサービスの終了
-  // #@@range_begin(exit_bs)
   status = gBS->ExitBootServices(image_handle, memmap.map_key);
   if (EFI_ERROR(status)) {
     status = GetMemoryMap(&memmap);
@@ -344,12 +323,9 @@ EFI_STATUS EFIAPI UefiMain(
       while(1);
     }
   }
-  // #@@range_end(exit_bs)
 
-  // #@@range_begin(call_kernel)
   UINT64 entry_addr = *(UINT64*)(kernel_first_addr + 24);
 
-  // #@@range_begin(pass_frame_buffer_config)
   struct FrameBufferConfig config = {
     (UINT8*)gop->Mode->FrameBufferBase,
     gop->Mode->Info->PixelsPerScanLine,
@@ -370,12 +346,11 @@ EFI_STATUS EFIAPI UefiMain(
   }
 
   // define type: void -> (UINT64, UINT64)
-  typedef void EntryPointType(const struct FrameBufferConfig*);
+  typedef void EntryPointType(const struct FrameBufferConfig*,
+                              const struct MemoryMap*);
 
   EntryPointType* entry_point = (EntryPointType*)entry_addr;
-  entry_point(&config);
-  // #@@range_end(pass_frame_buffer_config)
-  // #@@range_end(call_kernel)
+  entry_point(&config, &memmap);
 
   Print(L"All done\n");
 
