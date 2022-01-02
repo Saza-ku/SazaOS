@@ -1,5 +1,7 @@
 #include "usb/xhci/ring.hpp"
 
+#include <cstdint>
+
 #include "usb/memory.hpp"
 
 namespace usb::xhci {
