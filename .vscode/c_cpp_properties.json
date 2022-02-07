@@ -8,6 +8,7 @@
                 "/home/vagrant/edk2/MdePkg/Include/X64",
                 "/home/vagrant/osbook/devenv/x86_64-elf/include/c++/v1",
                 "/home/vagrant/osbook/devenv/x86_64-elf/include",
+                "/home/vagrant/osbook/devenv/x86_64-elf/include/sys",
                 "/home/vagrant/osbook/devenv/x86_64-elf/include/freetype2"
 
             ],

@@ -1,5 +1,6 @@
 # pragma once
 
+#include <cstdio>
 #include <array>
 
 class Error {
