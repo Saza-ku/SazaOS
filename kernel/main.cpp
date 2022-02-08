@@ -30,6 +30,8 @@
 #include "segment.hpp"
 #include "paging.hpp"
 #include "memory_manager.hpp"
+#include "window.hpp"
+#include "layer.hpp"
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter* pixel_writer;
@@ -54,11 +56,11 @@ int printk(const char* format, ...) {
 char memory_manager_buf[sizeof(BitmapMemoryManager)];
 BitmapMemoryManager* memory_manager;
 
-char mouse_cursor_buf[sizeof(MouseCursor)];
-MouseCursor* mouse_cursor;
+unsigned int mouse_layer_id;
 
 void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
-  mouse_cursor->MoveRelative({displacement_x, displacement_y});
+  layer_manager->MoveRelative(mouse_layer_id, {displacement_x, displacement_y});
+  layer_manager->Draw();
 }
 
 // EHCI で制御する設定から、xHCI で制御する設定に切り替える
@@ -116,25 +118,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
       break;
   }
 
-  const int kFrameWidth = frame_buffer_config.horizontal_resolution;
-  const int kFrameHeight = frame_buffer_config.vertical_resolution;
-
-  FillRectangle(*pixel_writer,
-                {0, 0},
-                {kFrameWidth, kFrameHeight - 50},
-                kDesktopBGColor);
-  FillRectangle(*pixel_writer,
-                {0, kFrameHeight - 50},
-                {kFrameWidth, 50},
-                {1, 8, 17});
-  FillRectangle(*pixel_writer,
-                {0, kFrameHeight - 50},
-                {kFrameWidth / 5, 50},
-                {80, 80, 80});
-  DrawRectangle(*pixel_writer,
-                {10, kFrameHeight - 40},
-                {30, 30},
-                {160, 160, 160});
+  DrawDesktop(*pixel_writer);
 
   console = new(console_buf) Console{
     *pixel_writer, kDesktopFGColor, kDesktopBGColor
@@ -180,11 +164,8 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
   if (auto err = InitializeHeap(*memory_manager)) {
     Log(kError, "failed to allocate pages: %s at %s:%d\n",
         err.Name(), err.File(), err.Line());
+    exit(1);
   }
-
-  mouse_cursor = new(mouse_cursor_buf) MouseCursor{
-    pixel_writer, kDesktopBGColor, {300, 200}
-  };
 
   std::array<Message, 32> main_queue_data;
   ArrayQueue<Message> main_queue{main_queue_data};
@@ -272,6 +253,14 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
       }
     }
   }
+
+  const int kFrameWidth = frame_buffer_config.horizontal_resolution;
+  const int kFrameHeight = frame_buffer_config.vertical_resolution;
+
+  auto bgwindow = std::make_shared<Window>(kFrameWidth, kFrameHeight);
+  auto bgwriter = bgwindow->Writer();
+
+  DrawDesktop(*bgwriter);
 
   while (true) {
     __asm__("cli");

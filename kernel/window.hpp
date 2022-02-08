@@ -47,7 +47,7 @@ class Window {
   /** @brief 透過色を設定する。 */
   void SetTransparentColor(std::optional<PixelColor> c);
   /** @brief このインスタンスに紐付いた WindowWriter を取得する。 */
-  WindowWriter* Write();
+  WindowWriter* Writer();
 
   /** @brief 指定した位置のピクセルを返す。 */
   PixelColor& At(int x, int y);
