@@ -26,7 +26,7 @@ class Window {
     /** @brief Width は関連付けられた Window の横幅をピクセル単位で返す。 */
     virtual int Width() const override { return window_.Width(); }
     /** @brief Height は関連付けられた Window の高さをピクセル単位で返す。 */
-    virtual int Height() const override { return window_.Width(); }
+    virtual int Height() const override { return window_.Height(); }
 
    private:
     Window& window_;

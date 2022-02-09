@@ -3,7 +3,7 @@
 Window::Window(int width, int height) : width_{width}, height_{height} {
   data_.resize(height);
   for (int y = 0; y < height; y++) {
-    data_.resize(width);
+    data_[y].resize(width);
   }
 }
 
@@ -22,7 +22,7 @@ void Window::DrawTo(PixelWriter& writer, Vector2D<int> position) {
     for (int x = 0; x < Width(); x++) {
       const auto c = At(x, y);
       if (c != tc) {
-        writer.Write(position.x + x, position.y + y, At(x, y));
+        writer.Write(position.x + x, position.y + y, c);
       }
     }
   }

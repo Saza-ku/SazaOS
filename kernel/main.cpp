@@ -1,7 +1,7 @@
 /**
  * @file main.cpp
- * 
- * カーネルの本体のプログラムを書いたファイル
+ *
+ * カーネル本体のプログラムを書いたファイル
  */
 
 #include <cstdint>
@@ -67,13 +67,13 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
 void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
   bool intel_ehc_exist = false;
   for (int i = 0; i < pci::num_device; ++i) {
-    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x20u) /* EHCI */
-      && 0x8086 == pci::ReadVendorId(pci::devices[i] /* Intel */)) {
+    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x20u) /* EHCI */ &&
+        0x8086 == pci::ReadVendorId(pci::devices[i] /* Intel */)) {
       intel_ehc_exist = true;
       break;
     }
   }
-  if (intel_ehc_exist) {
+  if (!intel_ehc_exist) {
     return;
   }
 
@@ -81,7 +81,7 @@ void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
   pci::WriteConfReg(xhc_dev, 0xd8, superspeed_ports); // USB3_PSSEN
   uint32_t ehci2xhci_ports = pci::ReadConfReg(xhc_dev, 0xd4); // XUSB2PRM
   pci::WriteConfReg(xhc_dev, 0xd0, ehci2xhci_ports); // XUSB2PR
-  Log(kDebug, "SwitchEhci2Xhce: SS = %02, xHCI = %02x\n",
+  Log(kDebug, "SwitchEhci2Xhci: SS = %02, xHCI = %02x\n",
     superspeed_ports, ehci2xhci_ports);
 }
 
@@ -103,10 +103,12 @@ void IntHandlerXHCI(InterruptFrame* frame) {
 
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
-extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_ref,
+extern "C" void KernelMainNewStack(
+                           const FrameBufferConfig& frame_buffer_config_ref,
                            const MemoryMap& memory_map_ref) {
   FrameBufferConfig frame_buffer_config{frame_buffer_config_ref};
   MemoryMap memory_map{memory_map_ref};
+
   switch (frame_buffer_config.pixel_format) {
     case kPixelRGBResv8BitPerColor:
       pixel_writer = new(pixel_writer_buf)
@@ -121,8 +123,9 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
   DrawDesktop(*pixel_writer);
 
   console = new(console_buf) Console{
-    *pixel_writer, kDesktopFGColor, kDesktopBGColor
+    kDesktopFGColor, kDesktopBGColor
   };
+  console->SetWriter(pixel_writer);
   printk("Welcome to SazaOS!\n");
   SetLogLevel(kWarn);
 
@@ -178,7 +181,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
 
   for (int i = 0; i < pci::num_device; ++i) {
     const auto& dev = pci::devices[i];
-    auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
+    auto vendor_id = pci::ReadVendorId(dev);
     auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
     printk("%d.%d.%d: vend %04x, class %08x, head %02x\n",
         dev.bus, dev.device, dev.function,
@@ -204,13 +207,12 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
         xhc_dev->bus, xhc_dev->device, xhc_dev->function);
   }
 
-  const uint16_t cs = GetCS();
   SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
-              reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+              reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
   LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 
   const uint8_t bsp_local_apic_id =
-    *reinterpret_cast<const uint32_t*>(0xfee0020) >> 24;
+    *reinterpret_cast<const uint32_t*>(0xfee00020) >> 24;
   pci::ConfigureMSIFixedDestination(
       *xhc_dev, bsp_local_apic_id,
       pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
@@ -237,7 +239,6 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
   xhc.Run();
 
   ::xhc = &xhc;
-  __asm__("sti");
 
   usb::HIDMouseDriver::default_observer = MouseObserver;
 
@@ -261,6 +262,28 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
   auto bgwriter = bgwindow->Writer();
 
   DrawDesktop(*bgwriter);
+  console->SetWriter(bgwriter);
+
+  auto mouse_window = std::make_shared<Window>(
+      kMouseCursorWidth, kMouseCursorHeight);
+  mouse_window->SetTransparentColor(kMouseTransparentColor);
+  DrawMouseCursor(mouse_window->Writer(), {0, 0});
+
+  layer_manager = new LayerManager;
+  layer_manager->SetWriter(pixel_writer);
+
+  auto bglayer_id = layer_manager->NewLayer()
+    .SetWindow(bgwindow)
+    .Move({0, 0})
+    .ID();
+  mouse_layer_id = layer_manager->NewLayer()
+    .SetWindow(mouse_window)
+    .Move({200, 200})
+    .ID();
+
+  layer_manager->UpDown(bglayer_id, 0);
+  layer_manager->UpDown(mouse_layer_id, 1);
+  layer_manager->Draw();
 
   while (true) {
     __asm__("cli");
@@ -271,7 +294,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
 
     Message msg = main_queue.Front();
     main_queue.Pop();
-    __asm("sti");
+    __asm__("sti");
 
     switch (msg.type) {
       case Message::kInterruptXHCI:
@@ -283,7 +306,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
         }
         break;
       default:
-        Log(kError, "Unkown message type: %d\n", msg.type);
+        Log(kError, "Unknown message type: %d\n", msg.type);
     }
   }
 }
