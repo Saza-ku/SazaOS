@@ -32,6 +32,21 @@ auto operator +(const Vector2D<T>& lhs, const Vector2D<U>& rhs)
       return {lhs.x + rhs.x, lhs.y + rhs.y};
 }
 
+template <typename T>
+Vector2D<T> ElementMax(constt Vector2D<T>& lhs, const Vector2D<T>& rhs) {
+  return {std::max(lhs.x, rhs.x), std::max(lhs.y, rhs.t)};
+}
+
+template <typename T>
+Vector2D<T> ElementMin(constt Vector2D<T>& lhs, const Vector2D<T>& rhs) {
+  return {std::min(lhs.x, rhs.x), std::min(lhs.y, rhs.t)};
+}
+
+template <typename T>
+struct Rectangle {
+  Vector2D<T> pos, size;
+}
+
 class PixelWriter {
   public:
     // デストラクタ: 明示的なデフォルト定義
