@@ -33,19 +33,19 @@ auto operator +(const Vector2D<T>& lhs, const Vector2D<U>& rhs)
 }
 
 template <typename T>
-Vector2D<T> ElementMax(constt Vector2D<T>& lhs, const Vector2D<T>& rhs) {
+Vector2D<T> ElementMax(const Vector2D<T>& lhs, const Vector2D<T>& rhs) {
   return {std::max(lhs.x, rhs.x), std::max(lhs.y, rhs.t)};
 }
 
 template <typename T>
-Vector2D<T> ElementMin(constt Vector2D<T>& lhs, const Vector2D<T>& rhs) {
+Vector2D<T> ElementMin(const Vector2D<T>& lhs, const Vector2D<T>& rhs) {
   return {std::min(lhs.x, rhs.x), std::min(lhs.y, rhs.t)};
 }
 
 template <typename T>
 struct Rectangle {
   Vector2D<T> pos, size;
-}
+};
 
 class PixelWriter {
   public:

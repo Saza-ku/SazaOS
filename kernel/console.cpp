@@ -59,7 +59,7 @@ void Console::Newline() {
   if (window_) {
     Rectangle<int> move_src{{0, 16}, {8 * kColumns, 16 * (kRows - 1)}};
     window_->Move({0, 0}, move_src);
-    FillRectangle(*writer, {0, 16 * (kRows - 1)}, {8 * kColumns, 16}, bg_color_);
+    FillRectangle(*writer_, {0, 16 * (kRows - 1)}, {8 * kColumns, 16}, bg_color_);
   } else {
     FillRectangle(*writer_, {0, 0}, {8 * kColumns, 16 * kRows}, bg_color_);
     for (int y = 0; y < 16 * kRows; ++y) {
