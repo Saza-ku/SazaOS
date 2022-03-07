@@ -11,6 +11,7 @@ namespace usb {
   }
 
   Error HIDMouseDriver::OnDataReceived() {
+    uint8_t buttons = Buffer()[0];
     int8_t displacement_x = Buffer()[1];
     int8_t displacement_y = Buffer()[2];
     NotifyMouseMove(displacement_x, displacement_y);
