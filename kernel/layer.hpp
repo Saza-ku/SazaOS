@@ -62,7 +62,7 @@ class LayerManager {
   void Draw(unsigned int id) const;
 
   /** @brief レイヤーの位置情報を指定された絶対座標へと更新する。 */
-  void Move(unsigned int id, Vector2D<int> new_position);
+  void Move(unsigned int id, Vector2D<int> new_pos);
   /** @brief レイヤーの位置情報を指定された総体座標へと更新する。 */
   void MoveRelative(unsigned int id, Vector2D<int> pos_diff);
 

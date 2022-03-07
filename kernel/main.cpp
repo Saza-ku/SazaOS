@@ -32,7 +32,6 @@
 #include "memory_manager.hpp"
 #include "window.hpp"
 #include "layer.hpp"
-#include "timer.hpp"
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter* pixel_writer;
@@ -48,13 +47,7 @@ int printk(const char* format, ...) {
   va_start(ap, format);
   result = vsprintf(s, format, ap);
   va_end(ap);
-
-  StartLAPICTimer();
-  console->PutString(s);
-  auto elapsed = LAPICTimerElapsed();
-  StopLAPICTimer();
-
-  sprintf(s, "[%9d]", elapsed);
+ 
   console->PutString(s);
   return result;
 }
@@ -274,11 +267,6 @@ extern "C" void KernelMainNewStack(
   auto bgwriter = bgwindow->Writer();
 
   DrawDesktop(*bgwriter);
-
-  auto console_window = std::make_shared<Window>(
-      kMouseCursorWidth, kMouseCursorHeight, frame_buffer_config.pixel_format);
-  console->SetWindow(console_window);
-
   auto mouse_window = std::make_shared<Window>(
       kMouseCursorWidth, kMouseCursorHeight, frame_buffer_config.pixel_format);
   mouse_window->SetTransparentColor(kMouseTransparentColor);
@@ -288,6 +276,12 @@ extern "C" void KernelMainNewStack(
   auto main_window = std::make_shared<Window>(
       160, 52, frame_buffer_config.pixel_format);
   DrawWindow(*main_window->Writer(), "Hello Window");
+
+
+  auto console_window = std::make_shared<Window>(
+      Console::kColumns * 8, Console::kRows * 16, frame_buffer_config.pixel_format);
+  console->SetWindow(console_window);
+
 
   FrameBuffer screen;
   if (auto err = screen.Initialize(frame_buffer_config)) {
