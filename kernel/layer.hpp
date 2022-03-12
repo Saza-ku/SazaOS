@@ -27,7 +27,7 @@ class Layer {
 
   /** @brief ウィンドウを設定する。既存のウィンドウはこのレイヤーから外れる。 */
   Layer& SetWindow(const std::shared_ptr<Window>& window);
-  /** @brief 指定されたウィンドウを返す。 */
+  /** @brief 設定されたウィンドウを返す。 */
   std::shared_ptr<Window> GetWindow() const;
   /** @brief レイヤーの原点座標を取得する。 */
   Vector2D<int> GetPosition() const;
@@ -37,7 +37,7 @@ class Layer {
   /** @brief レイヤーの位置情報を指定された相対座標へと更新する。再描画はしない。 */
   Layer& MoveRelative(Vector2D<int> pos_diff);
 
-  /** @brief writer に現在設定されているウィンドウの内容を描画する。 */
+  /** @brief 指定された描画先にウィンドウの内容を描画する */
   void DrawTo(FrameBuffer& screen, const Rectangle<int>& area) const;
 
  private:
@@ -51,30 +51,34 @@ class LayerManager {
  public:
   /** @brief Draw メソッドなどで描画する際の描画先を設定する。 */
   void SetWriter(FrameBuffer* screen);
-  /** @brief 新しいレイヤーを生成して参照先を渡す。
+  /** @brief 新しいレイヤーを生成して参照を返す。
    *
-   * 新しく生成されたレイヤーの実体は LayerManager 内部のコンテナで保持される。 */
+   * 新しく生成されたレイヤーの実体は LayerManager 内部のコンテナで保持される。
+   */
   Layer& NewLayer();
 
   /** @brief 現在表示状態にあるレイヤーを描画する。 */
   void Draw(const Rectangle<int>& area) const;
-  /** @brief 指定したレイヤーに設定されているウィンドウの描画領域内に再描画する。 */
+  /** @brief 指定したレイヤーに設定されているウィンドウの描画領域内を再描画する。 */
   void Draw(unsigned int id) const;
 
-  /** @brief レイヤーの位置情報を指定された絶対座標へと更新する。 */
+  /** @brief レイヤーの位置情報を指定された絶対座標へと更新する。再描画する。 */
   void Move(unsigned int id, Vector2D<int> new_pos);
-  /** @brief レイヤーの位置情報を指定された総体座標へと更新する。 */
+  /** @brief レイヤーの位置情報を指定された相対座標へと更新する。再描画する。 */
   void MoveRelative(unsigned int id, Vector2D<int> pos_diff);
 
   /** @brief レイヤーの高さ方向の位置を指定された位置に移動する。
    *
    * new_height に負の高さを指定するとレイヤーは非表示となり、
-   * 0 以上を指定するとその高さになる。
+   * 0 以上を指定するとその高さとなる。
    * 現在のレイヤー数以上の数値を指定した場合は最前面のレイヤーとなる。
    * */
   void UpDown(unsigned int id, int new_height);
   /** @brief レイヤーを非表示とする。 */
   void Hide(unsigned int id);
+
+  /** @brief 指定された座標にウィンドウを持つ最も上に表示されているレイヤーを探す。 */
+  Layer* FindLayerByPosition(Vector2D<int> pos, unsigned int exclude_id) const;
 
  private:
   FrameBuffer* screen_{nullptr};
