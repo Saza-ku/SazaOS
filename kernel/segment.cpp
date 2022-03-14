@@ -48,3 +48,10 @@ void SetupSegments() {
   SetDataSegment(gdt[2], DescriptorType::kReadWrite, 0, 0, 0xffffu);
   LoadGDT(sizeof(gdt) - 1, reinterpret_cast<uint64_t>(&gdt[0]));
 }
+
+void InitializeSegmentation() {
+  SetupSegments();
+
+  SetDSAll(kKernelDS);
+  SetCSSS(kKernelCS, kKernelSS);
+}
