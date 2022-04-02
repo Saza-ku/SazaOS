@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <cstdlib>
+#include "asmfunc.h"
 #include "logger.hpp"
 
 namespace {
@@ -65,6 +66,20 @@ namespace acpi {
 
   const FADT* fadt;
 
+  void WaitMilliseconds(unsigned long msec) {
+    const bool pm_timer_32 = (fadt->flags >> 8) & 1;
+    const uint32_t start = IoIn32(fadt->pm_tmr_blk);
+    uint32_t end = start + kPMTimerFreq * msec / 1000;
+    if (!pm_timer_32) {
+      end &= 0x00ffffffu;
+    }
+
+    if (end < start) { // overflow
+      while (IoIn32(fadt->pm_tmr_blk) >= start);
+    }
+    while (IoIn32(fadt->pm_tmr_blk) < end);
+  }
+
   void Initialize(const RSDP& rsdp) {
     if (!rsdp.IsValid()) {
       Log(kError, "RSDP is not valid\n");
@@ -80,7 +95,7 @@ namespace acpi {
     fadt = nullptr;
     for (int i = 0; i < xsdt.Count(); ++i) {
       const auto& entry = xsdt[i];
-      if (entry.IsValid("FACP")) {
+      if (entry.IsValid("FACP")) { // 歴史的な事情により FADT のシグネチャは "FACP"
         fadt = reinterpret_cast<const FADT*>(&entry);
         break;
       }
