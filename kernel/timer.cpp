@@ -12,7 +12,7 @@ namespace {
 }
 
 void InitializeLAPICTimer(std::deque<Message>& msg_queue) {
-  timer_manager = new TimerManager(msg_queue);
+  timer_manager = new TimerManager{msg_queue};
   
   divide_config = 0b1011;
   lvt_timer = (0b010 << 16);
