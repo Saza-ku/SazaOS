@@ -3,6 +3,7 @@
 #include "asmfunc.h"
 #include "segment.hpp"
 #include "timer.hpp"
+#include "logger.hpp"
 
 namespace {
   template <class T, class U>
@@ -89,6 +90,9 @@ TaskManager::TaskManager() {
 
 Task& TaskManager::NewTask() {
   latest_id_++;
+  Log(kError, "ID: %lu\n", latest_id_);
+  Log(kError, "ID: %lu\n", latest_id_);
+  Log(kError, "ID: %lu\n", latest_id_);
   return *tasks_.emplace_back(new Task{latest_id_});
 }
 

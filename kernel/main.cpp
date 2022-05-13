@@ -135,10 +135,8 @@ void TaskB(uint64_t task_id, int64_t data) {
   printk("TaskB: task_id=%lu, data=%lu\n", task_id, data);
   char str[128];
   int count = 0;
-  Log(kError, "TASK B");
 
   __asm__("cli");
-    Log(kError, "TASK B");
   Task& task = task_manager->CurrentTask();
   __asm__("sti");
 
@@ -149,24 +147,17 @@ void TaskB(uint64_t task_id, int64_t data) {
     WriteString(*task_b_window->Writer(), {24, 28}, str, {0, 0, 0});
 
     Message msg{Message::kLayer, task_id};
-    Log(kError, "TASK B 1\n");
     msg.arg.layer.layer_id = task_b_window_layer_id;
     msg.arg.layer.op = LayerOperation::Draw;
     __asm__("cli");
-    Log(kError, "TASK B 2\n");
     task_manager->SendMessage(1, msg);
-    Log(kError, "TASK B 3\n");
     __asm__("sti");
 
     while (true) {
       __asm__("cli");
-      Log(kError, "TASK B 6\n");
       auto msg = task.ReceiveMessage();
-      Log(kError, "TASK B 7\n");
       if (!msg) {
-        Log(kError, "TASK B 4\n");
         task.Sleep();
-        Log(kError, "TASK B 5\n");
         __asm__("sti");
         continue;
       }
