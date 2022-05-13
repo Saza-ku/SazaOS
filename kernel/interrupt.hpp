@@ -20,7 +20,7 @@ union InterruptDescriptorAttribute {
     uint16_t : 5;
     DescriptorType type : 4;
     uint16_t : 1;
-    uint16_t descriptor_privilage_level : 2;
+    uint16_t descriptor_privilege_level : 2;
     uint16_t present : 1;
   } __attribute__((packed)) bits;
 } __attribute__((packed));
@@ -38,13 +38,13 @@ extern std::array<InterruptDescriptor, 256> idt;
 
 constexpr InterruptDescriptorAttribute MakeIDTAttr(
     DescriptorType type,
-    uint8_t descriptor_privilage_level,
+    uint8_t descriptor_privilege_level,
     bool present = true,
     uint8_t interrupt_stack_table = 0) {
   InterruptDescriptorAttribute attr{};
   attr.bits.interrupt_stack_table = interrupt_stack_table;
   attr.bits.type = type;
-  attr.bits.descriptor_privilage_level = descriptor_privilage_level;
+  attr.bits.descriptor_privilege_level = descriptor_privilege_level;
   attr.bits.present = present;
   return attr;
 }

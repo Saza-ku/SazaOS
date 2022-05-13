@@ -32,6 +32,5 @@ struct Message {
       unsigned int layer_id;
       int x, y;
     } layer;
-    
   } arg;
 };

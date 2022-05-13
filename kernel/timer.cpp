@@ -16,7 +16,7 @@ void InitializeLAPICTimer() {
   timer_manager = new TimerManager;
   
   divide_config = 0b1011;
-  lvt_timer = (0b010 << 16);
+  lvt_timer = 0b001 << 16;
 
   StartLAPICTimer();
   acpi::WaitMilliseconds(100);
@@ -43,7 +43,7 @@ void StopLAPICTimer() {
 }
 
 Timer::Timer(unsigned long timeout, int value)
-    : timeout_{timeout}, value_{value}{
+    : timeout_{timeout}, value_{value} {
 }
 
 TimerManager::TimerManager() {

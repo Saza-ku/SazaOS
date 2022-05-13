@@ -5,12 +5,11 @@
 #include "timer.hpp"
 
 namespace {
-  template<class T, class U>
+  template <class T, class U>
   void Erase(T& c, const U& value) {
     auto it = std::remove(c.begin(), c.end(), value);
     c.erase(it, c.end());
   }
-
 
   void TaskIdle(uint64_t task_id, int64_t data) {
     while (true) __asm__("hlt");
@@ -145,6 +144,37 @@ Error TaskManager::Sleep(uint64_t id) {
   return MAKE_ERROR(Error::kSuccess);
 }
 
+void TaskManager::Wakeup(Task* task, int level) {
+  if (task->Running()) {
+    ChangeLevelRunning(task, level);
+    return;
+  }
+
+  if (level < 0) {
+    level = task->Level();
+  }
+
+  task->SetLevel(level);
+  task->SetRunning(true);
+
+  running_[level].push_back(task);
+  if (level > current_level_) {
+    level_changed_ = true;
+  }
+  return;
+}
+
+Error TaskManager::Wakeup(uint64_t id, int level) {
+  auto it = std::find_if(tasks_.begin(), tasks_.end(),
+                         [id](const auto& t){ return t->ID() == id; });
+  if (it == tasks_.end()) {
+    return MAKE_ERROR(Error::kNoSuchTask);
+  }
+
+  Wakeup(it->get(), level);
+  return MAKE_ERROR(Error::kSuccess);
+}
+
 Error TaskManager::SendMessage(uint64_t id, const Message& msg) {
   auto it = std::find_if(tasks_.begin(), tasks_.end(),
                          [id](const auto& t){ return t->ID() == id; });
@@ -173,49 +203,19 @@ void TaskManager::ChangeLevelRunning(Task* task, int level) {
     if (level > current_level_) {
       level_changed_ = true;
     }
+    return;
   }
 
   // change level myself
   running_[current_level_].pop_front();
   running_[level].push_front(task);
   task->SetLevel(level);
-
-
-  current_level_ = level;
-  if (level < current_level_) {
+  if (level >= current_level_) {
+    current_level_ = level;
+  } else {
+    current_level_ = level;
     level_changed_ = true;
   }
-}
-
-void TaskManager::Wakeup(Task* task, int level) {
-  if (task->Running()) {
-    ChangeLevelRunning(task, level);
-    return;
-  }
-
-  if (level < 0) {
-    level = task->Level();
-  }
-
-  task->SetLevel(level);
-  task->SetRunning(true);
-
-  running_[level].push_back(task);
-  if (level > current_level_) {
-    level_changed_ = true;
-  }
-  return;
-}
-
-Error TaskManager::Wakeup(uint64_t id, int level) {
-  auto it = std::find_if(tasks_.begin(), tasks_.end(),
-                         [id](const auto& t){ return t->ID() == id; });
-  if (it == tasks_.end()) {
-    return MAKE_ERROR(Error::kNoSuchTask);
-  }
-
-  Wakeup(it->get());
-  return MAKE_ERROR(Error::kSuccess);
 }
 
 TaskManager* task_manager;
