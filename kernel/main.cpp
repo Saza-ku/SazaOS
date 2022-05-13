@@ -21,19 +21,15 @@
 #include "console.hpp"
 #include "pci.hpp"
 #include "logger.hpp"
-#include "usb/memory.hpp"
-#include "usb/device.hpp"
-#include "usb/classdriver/mouse.hpp"
 #include "usb/xhci/xhci.hpp"
-#include "usb/xhci/trb.hpp"
 #include "interrupt.hpp"
 #include "asmfunc.h"
-#include "queue.hpp"
 #include "segment.hpp"
 #include "paging.hpp"
 #include "memory_manager.hpp"
 #include "window.hpp"
 #include "layer.hpp"
+#include "message.hpp"
 #include "timer.hpp"
 #include "acpi.hpp"
 #include "keyboard.hpp"
@@ -89,6 +85,7 @@ void InitializeTextWindow() {
 }
 
 int text_window_index;
+
 void DrawTextCursor(bool visible) {
   const auto color = visible ? ToColor(0) : ToColor(0xffffff);
   const auto pos = Vector2D<int>{8 + 8*text_window_index, 24 + 5};
@@ -138,13 +135,37 @@ void TaskB(uint64_t task_id, int64_t data) {
   printk("TaskB: task_id=%lu, data=%lu\n", task_id, data);
   char str[128];
   int count = 0;
+
+  __asm__("cli");
+  Task& task = task_manager->CurrentTask();
+  __asm__("sti");
+
   while (true) {
     count++;
     sprintf(str, "%010d", count);
     FillRectangle(*task_b_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
     WriteString(*task_b_window->Writer(), {24, 28}, str, {0, 0, 0});
-    layer_manager->Draw(task_b_window_layer_id);
 
+    Message msg{Message::kLayer, task_id};
+    msg.arg.layer.layer_id = task_b_window_layer_id;
+    msg.arg.layer.op = LayerOperation::Draw;
+    __asm__("cli");
+    task_manager->SendMessage(1, msg);
+    __asm__("sti");
+
+    while (true) {
+      __asm__("cli");
+      auto msg = task.ReceiveMessage();
+      if (!msg) {
+        task.Sleep();
+        __asm__("sti");
+        continue;
+      }
+
+      if (msg->type == Message::kLayerFinish) {
+        break;
+      }
+    }
   }
 }
 
@@ -180,9 +201,7 @@ extern "C" void KernelMainNewStack(
 
   const int kTextboxCursorTimer = 1;
   const int kTimer05Sec = static_cast<int>(kTimerFreq * 0.5);
-  __asm__("cli");
   timer_manager->AddTimer(Timer{kTimer05Sec, kTextboxCursorTimer});
-  __asm__("sti");
   bool textbox_cursor_visible = false;
 
   InitializeTask();
@@ -193,9 +212,8 @@ extern "C" void KernelMainNewStack(
     .ID();
 
   usb::xhci::Initialize();
-  InitializeMouse();
   InitializeKeyboard();
-
+  InitializeMouse();
 
   char str[128];
 
@@ -241,6 +259,12 @@ extern "C" void KernelMainNewStack(
         } else if (msg->arg.keyboard.ascii == 'w') {
           printk("wakeup TaskB: %s\n", task_manager->Wakeup(taskb_id).Name());
         }
+        break;
+      case Message::kLayer:
+        ProcessLayerMessage(*msg);
+        __asm__("cli");
+        task_manager->SendMessage(msg->src_task, Message{Message::kLayerFinish});
+        __asm__("sti");
         break;
       default:
         Log(kError, "Unknown message type: %d\n", msg->type);
