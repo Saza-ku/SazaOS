@@ -169,11 +169,36 @@ Layer* LayerManager::FindLayer(unsigned int id) {
   return it->get();
 }
 
+int LayerManager::GetHeight(unsigned int id) {
+  for (int h = 0; h < layer_stack_.size(); h++) {
+    if (layer_stack_[h]->ID() == id) {
+      return h;
+    }
+  }
+  return -1;
+}
+
 namespace {
   FrameBuffer* screen;
 }
 
 LayerManager* layer_manager;
+
+ActiveLayer::ActiveLayer(LayerManager& manager) : manager_{manager} {
+}
+
+void ActiveLayer::SetMouseLayer(unsigned int mouse_layer) {
+  mouse_layer_ = mouse_layer;
+}
+
+void ActiveLayer::Active(unsigned int layer_id) {
+  if (active_layer_ == layer_id) {
+    return;
+  }
+  if (active_layer_ > 0) {
+    Layer* layer = manager_.FindLayer(active_layer_);
+  }
+}
 
 void InitializeLayer() {
   const auto screen_size = ScreenSize();

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <optional>
+#include <string>
 #include "graphics.hpp"
 #include "frame_buffer.hpp"
 
@@ -36,7 +37,7 @@ class Window {
 
   /** @brief 指定されたピクセル数の平面描画領域を作成する。 */
   Window(int width, int height, PixelFormat shadow_format);
-  ~Window() = default;
+  virtual ~Window() = default;
   Window(const Window& rhs) = delete;
   Window& operator=(const Window& rhs) = delete;
 
@@ -72,6 +73,9 @@ class Window {
    */
   void Move(Vector2D<int> dst_pos, const Rectangle<int>& src);
 
+  virtual void Activate() {}
+  virtual void Deactive() {}
+
  private:
   int width_, height_;
   std::vector<std::vector<PixelColor>> data_{};
@@ -82,3 +86,4 @@ class Window {
 
 void DrawWindow(PixelWriter& writer, const char* title);
 void DrawTextbox(PixelWriter& writer, Vector2D<int> pos, Vector2D<int> size);
+void DrawWindow(PxielWriter& writer, const char* title, bool active);
