@@ -25,7 +25,5 @@
   UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
 
-#@range_begin(components)
 [Components]
   SazaLoaderPkg/Loader.inf
-#@range_end(components)

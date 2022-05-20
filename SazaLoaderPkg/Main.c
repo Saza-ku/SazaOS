@@ -9,17 +9,9 @@
 #include  <Protocol/DiskIo2.h>
 #include  <Protocol/BlockIo.h>
 #include  <Guid/FileInfo.h>
-#include "frame_buffer_config.hpp"
+#include  "frame_buffer_config.hpp"
+#include  "memory_map.hpp"
 #include  "elf.hpp"
-
-struct MemoryMap {
-  UINTN buffer_size;
-  VOID* buffer;
-  UINTN map_size;
-  UINTN map_key;
-  UINTN descriptor_size;
-  UINT32 descriptor_version;
-};
 
 EFI_STATUS GetMemoryMap(struct MemoryMap* map) {
   if (map->buffer == NULL) {
@@ -58,13 +50,17 @@ const CHAR16* GetMemoryTypeUnicode(EFI_MEMORY_TYPE type) {
 }
 
 EFI_STATUS SaveMemoryMap(struct MemoryMap* map, EFI_FILE_PROTOCOL* file) {
+  EFI_STATUS status;
   CHAR8 buf[256];
   UINTN len;
 
   CHAR8* header =
     "Index, Type, Type(name), PhysicalStart, NumberOfPages, Attribute\n";
   len = AsciiStrLen(header);
-  file->Write(file, &len, header);
+  status = file->Write(file, &len, header);
+  if (EFI_ERROR(status)) {
+    return status;
+  }
 
   Print(L"map->buffer = %08lx, map->map_size = %08lx\n",
       map->buffer, map->map_size);
@@ -81,56 +77,72 @@ EFI_STATUS SaveMemoryMap(struct MemoryMap* map, EFI_FILE_PROTOCOL* file) {
         i, desc->Type, GetMemoryTypeUnicode(desc->Type),
         desc->PhysicalStart, desc->NumberOfPages,
         desc->Attribute & 0xffffflu);
-    file->Write(file, &len, buf);
+    status = file->Write(file, &len, buf);
+    if (EFI_ERROR(status)) {
+      return status;
+    }
   }
 
   return EFI_SUCCESS;
 }
 
 EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL** root) {
+  EFI_STATUS status;
   EFI_LOADED_IMAGE_PROTOCOL* loaded_image;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* fs;
 
-  gBS->OpenProtocol(
+  status = gBS->OpenProtocol(
       image_handle,
       &gEfiLoadedImageProtocolGuid,
       (VOID**)&loaded_image,
       image_handle,
       NULL,
       EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+  if (EFI_ERROR(status)) {
+    return status;
+  }
 
-  gBS->OpenProtocol(
+  status = gBS->OpenProtocol(
       loaded_image->DeviceHandle,
       &gEfiSimpleFileSystemProtocolGuid,
       (VOID**)&fs,
       image_handle,
       NULL,
       EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+  if (EFI_ERROR(status)) {
+    return status;
+  }
 
-  fs->OpenVolume(fs, root);
-
-  return EFI_SUCCESS;
+  return fs->OpenVolume(fs, root);
 }
 
 EFI_STATUS OpenGOP(EFI_HANDLE image_handle,
                    EFI_GRAPHICS_OUTPUT_PROTOCOL** gop) {
+  EFI_STATUS status;
   UINTN num_gop_handles = 0;
   EFI_HANDLE* gop_handles = NULL;
-  gBS->LocateHandleBuffer(
+
+  status = gBS->LocateHandleBuffer(
       ByProtocol,
       &gEfiGraphicsOutputProtocolGuid,
       NULL,
       &num_gop_handles,
       &gop_handles);
-  
-  gBS->OpenProtocol(
-        gop_handles[0],
-        &gEfiGraphicsOutputProtocolGuid,
-        (VOID**)gop,
-        image_handle,
-        NULL,
-        EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
-  
+  if (EFI_ERROR(status)) {
+    return status;
+  }
+
+  status = gBS->OpenProtocol(
+      gop_handles[0],
+      &gEfiGraphicsOutputProtocolGuid,
+      (VOID**)gop,
+      image_handle,
+      NULL,
+      EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+  if (EFI_ERROR(status)) {
+    return status;
+  }
+
   FreePool(gop_handles);
 
   return EFI_SUCCESS;
@@ -161,8 +173,6 @@ void CalcLoadAddressRange(Elf64_Ehdr* ehdr, UINT64* first, UINT64* last) {
   Elf64_Phdr* phdr = (Elf64_Phdr*)((UINT64)ehdr + ehdr->e_phoff);
   *first = MAX_UINT64;
   *last = 0;
-  // プログラムヘッダに各セグメントの情報が格納されている感じ
-  // プログラムヘッダから、LOAD セグメントの範囲を計算する
   for (Elf64_Half i = 0; i < ehdr->e_phnum; ++i) {
     if (phdr[i].p_type != PT_LOAD) continue;
     *first = MIN(*first, phdr[i].p_vaddr);
@@ -172,18 +182,13 @@ void CalcLoadAddressRange(Elf64_Ehdr* ehdr, UINT64* first, UINT64* last) {
 
 void CopyLoadSegments(Elf64_Ehdr* ehdr) {
   Elf64_Phdr* phdr = (Elf64_Phdr*)((UINT64)ehdr + ehdr->e_phoff);
-  // プログラムヘッダから、LOAD セグメントを取得してコピーする
   for (Elf64_Half i = 0; i < ehdr->e_phnum; ++i) {
     if (phdr[i].p_type != PT_LOAD) continue;
 
-    // 一時領域にあるプログラムヘッダを取得
     UINT64 segm_in_file = (UINT64)ehdr + phdr[i].p_offset;
-    // 一時領域にあるプログラムヘッダを、最終目的地（p_vaddr が指す）にコピー
     CopyMem((VOID*)phdr[i].p_vaddr, (VOID*)segm_in_file, phdr[i].p_filesz);
 
-    // セグメントの、メモリ上のサイズとファイル上のサイズの差を取得
     UINTN remain_bytes = phdr[i].p_memsz - phdr[i].p_filesz;
-    // 差を 0 で埋める
     SetMem((VOID*)(phdr[i].p_vaddr + phdr[i].p_filesz), remain_bytes, 0);
   }
 }
@@ -191,9 +196,8 @@ void CopyLoadSegments(Elf64_Ehdr* ehdr) {
 EFI_STATUS EFIAPI UefiMain(
     EFI_HANDLE image_handle,
     EFI_SYSTEM_TABLE* system_table) {
-  // エラー検出用
   EFI_STATUS status;
-  
+
   Print(L"Hello, Mikan World!\n");
 
   CHAR8 memmap_buf[4096 * 4];
@@ -233,7 +237,7 @@ EFI_STATUS EFIAPI UefiMain(
 
   EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
   status = OpenGOP(image_handle, &gop);
-  if(EFI_ERROR(status)) {
+  if (EFI_ERROR(status)) {
     Print(L"failed to open GOP: %r\n", status);
     Halt();
   }
@@ -243,11 +247,11 @@ EFI_STATUS EFIAPI UefiMain(
       gop->Mode->Info->VerticalResolution,
       GetPixelFormatUnicode(gop->Mode->Info->PixelFormat),
       gop->Mode->Info->PixelsPerScanLine);
-  Print(L"Frame Buffer: ox%0lx - ox%0lx, Size: %lu bytes\n",
+  Print(L"Frame Buffer: 0x%0lx - 0x%0lx, Size: %lu bytes\n",
       gop->Mode->FrameBufferBase,
       gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
       gop->Mode->FrameBufferSize);
-  
+
   UINT8* frame_buffer = (UINT8*)gop->Mode->FrameBufferBase;
   for (UINTN i = 0; i < gop->Mode->FrameBufferSize; ++i) {
     frame_buffer[i] = 255;
@@ -255,18 +259,18 @@ EFI_STATUS EFIAPI UefiMain(
 
   EFI_FILE_PROTOCOL* kernel_file;
   status = root_dir->Open(
-    root_dir, &kernel_file, L"\\kernel.elf",
-    EFI_FILE_MODE_READ, 0);
+      root_dir, &kernel_file, L"\\kernel.elf",
+      EFI_FILE_MODE_READ, 0);
   if (EFI_ERROR(status)) {
     Print(L"failed to open file '\\kernel.elf': %r\n", status);
     Halt();
   }
-  
+
   UINTN file_info_size = sizeof(EFI_FILE_INFO) + sizeof(CHAR16) * 12;
   UINT8 file_info_buffer[file_info_size];
   status = kernel_file->GetInfo(
-    kernel_file, &gEfiFileInfoGuid,
-    &file_info_size, file_info_buffer);
+      kernel_file, &gEfiFileInfoGuid,
+      &file_info_size, file_info_buffer);
   if (EFI_ERROR(status)) {
     Print(L"failed to get file information: %r\n", status);
     Halt();
@@ -275,7 +279,6 @@ EFI_STATUS EFIAPI UefiMain(
   EFI_FILE_INFO* file_info = (EFI_FILE_INFO*)file_info_buffer;
   UINTN kernel_file_size = file_info->FileSize;
 
-  // カーネルファイルを一時領域に置く
   VOID* kernel_buffer;
   status = gBS->AllocatePool(EfiLoaderData, kernel_file_size, &kernel_buffer);
   if (EFI_ERROR(status)) {
@@ -301,7 +304,7 @@ EFI_STATUS EFIAPI UefiMain(
   }
 
   CopyLoadSegments(kernel_ehdr);
-  Print(L"Kernel: 0x%0lx\n", kernel_first_addr, kernel_last_addr);
+  Print(L"Kernel: 0x%0lx - 0x%0lx\n", kernel_first_addr, kernel_last_addr);
 
   status = gBS->FreePool(kernel_buffer);
   if (EFI_ERROR(status)) {
@@ -309,18 +312,17 @@ EFI_STATUS EFIAPI UefiMain(
     Halt();
   }
 
-  // ブートサービスの終了
   status = gBS->ExitBootServices(image_handle, memmap.map_key);
   if (EFI_ERROR(status)) {
     status = GetMemoryMap(&memmap);
-    if(EFI_ERROR(status)) {
+    if (EFI_ERROR(status)) {
       Print(L"failed to get memory map: %r\n", status);
-      while(1);
+      Halt();
     }
     status = gBS->ExitBootServices(image_handle, memmap.map_key);
-    if(EFI_ERROR(status)) {
-      Print(L"Could not exit boot service %r\n", status);
-      while(1);
+    if (EFI_ERROR(status)) {
+      Print(L"Could not exit boot service: %r\n", status);
+      Halt();
     }
   }
 
@@ -345,12 +347,20 @@ EFI_STATUS EFIAPI UefiMain(
       Halt();
   }
 
-  // define type: void -> (UINT64, UINT64)
-  typedef void EntryPointType(const struct FrameBufferConfig*,
-                              const struct MemoryMap*);
+  VOID* acpi_table = NULL;
+  for (UINTN i = 0; i < system_table->NumberOfTableEntries; ++i) {
+    if (CompareGuid(&gEfiAcpiTableGuid,
+                    &system_table->ConfigurationTable[i].VendorGuid)) {
+      acpi_table = system_table->ConfigurationTable[i].VendorTable;
+      break;
+    }
+  }
 
+  typedef void EntryPointType(const struct FrameBufferConfig*,
+                              const struct MemoryMap*,
+                              const VOID*);
   EntryPointType* entry_point = (EntryPointType*)entry_addr;
-  entry_point(&config, &memmap);
+  entry_point(&config, &memmap, acpi_table);
 
   Print(L"All done\n");
 

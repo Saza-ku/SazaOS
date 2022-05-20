@@ -96,8 +96,6 @@ class LayerManager {
   std::vector<std::unique_ptr<Layer>> layers_{};
   std::vector<Layer*> layer_stack_{};
   unsigned int latest_id_{0};
-
-  Layer* FindLayer(unsigned int id);
 };
 
 extern LayerManager* layer_manager;
@@ -106,7 +104,7 @@ class ActiveLayer {
  public:
   ActiveLayer(LayerManager& manager);
   void SetMouseLayer(unsigned int mouse_layer);
-  void Active(unsigned int layer_id);
+  void Activate(unsigned int layer_id);
   unsigned int GetActive() const { return active_layer_; }
 
  private:

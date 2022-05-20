@@ -20,9 +20,9 @@
 
 [Guids]
   gEfiFileInfoGuid
+  gEfiAcpiTableGuid
 
 [Protocols]
   gEfiLoadedImageProtocolGuid
   gEfiLoadFileProtocolGuid
   gEfiSimpleFileSystemProtocolGuid
-  

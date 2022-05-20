@@ -13,6 +13,7 @@
     },
     "files.associations": {
       "array": "cpp",
-      "cstddef": "cpp"
+      "cstddef": "cpp",
+      "memory": "cpp"
     }
   }

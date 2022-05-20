@@ -191,14 +191,27 @@ void ActiveLayer::SetMouseLayer(unsigned int mouse_layer) {
   mouse_layer_ = mouse_layer;
 }
 
-void ActiveLayer::Active(unsigned int layer_id) {
+void ActiveLayer::Activate(unsigned int layer_id) {
   if (active_layer_ == layer_id) {
     return;
   }
+  
   if (active_layer_ > 0) {
     Layer* layer = manager_.FindLayer(active_layer_);
+    layer->GetWindow()->Deactivate();
+    manager_.Draw(active_layer_);
+  }
+
+  active_layer_ = layer_id;
+  if (active_layer_ > 0) {
+    Layer* layer = manager_.FindLayer(active_layer_);
+    layer->GetWindow()->Activate();
+    manager_.UpDown(active_layer_, manager_.GetHeight(mouse_layer_) - 1);
+    manager_.Draw(active_layer_);
   }
 }
+
+ActiveLayer* active_layer;
 
 void InitializeLayer() {
   const auto screen_size = ScreenSize();
@@ -232,6 +245,8 @@ void InitializeLayer() {
   
   layer_manager->UpDown(bglayer_id, 0);
   layer_manager->UpDown(console->LayerID(), 1);
+
+  active_layer = new ActiveLayer{*layer_manager};
 }
 
 void ProcessLayerMessage(const Message& msg) {

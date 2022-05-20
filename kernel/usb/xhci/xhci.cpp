@@ -563,9 +563,9 @@ namespace usb::xhci {
     // Base Address Register 0 (BAR0) に
     // MMIO アドレスが書かれているので、それを読み取る
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
-    Log(kWarn, "ReadBar: %s\n", xhc_bar.error.Name());
+    Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
     const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
-    Log(kWarn, "xHC mmio_base = %08lx\n", xhc_mmio_base);
+    Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
 
     usb::xhci::controller = new Controller{xhc_mmio_base};
     Controller& xhc = *usb::xhci::controller;
