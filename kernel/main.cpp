@@ -192,7 +192,9 @@ extern "C" void KernelMainNewStack(
   InitializeTextWindow();
   InitializeTaskBWindow();
   layer_manager->Draw({{0, 0}, ScreenSize()});
+  // なぜかいる？
   active_layer->Activate(task_b_window_layer_id);
+  layer_manager->UpDown(task_b_window_layer_id, std::numeric_limits<int>::max());
 
   acpi::Initialize(acpi_table);
   InitializeLAPICTimer();
@@ -212,6 +214,7 @@ extern "C" void KernelMainNewStack(
   usb::xhci::Initialize();
   InitializeKeyboard();
   InitializeMouse();
+
 
   char str[128];
 
