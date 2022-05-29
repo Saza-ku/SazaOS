@@ -4,6 +4,7 @@
 
 #include "font.hpp"
 #include "layer.hpp"
+#include "pci.hpp"
 
 #include "logger.hpp"
 
@@ -21,7 +22,7 @@ Terminal::Terminal() {
     .SetDraggable(true)
     .ID();
   
-  Print("$");
+  Print("$ ");
 }
 
 Rectangle<int> Terminal::BlinkCursor() {
@@ -58,7 +59,7 @@ Rectangle<int> Terminal::InputKey(
       Scroll1();
     }
     ExecuteLine();
-    Print("$");
+    Print("$ ");
     draw_area.pos = ToplevelWindow::kTopLeftMargin;
     draw_area.size = window_->InnerSize();
   } else if (ascii == '\b') {
@@ -98,10 +99,20 @@ void Terminal::ExecuteLine() {
       Print(first_arg);
     }
     Print("\n");
-  } else if (strcmp(command, "clear") == 0){
+  } else if (strcmp(command, "clear") == 0) {
     FillRectangle(*window_->InnerWriter(),
                   {4, 4}, {8*kColumns, 16*kRows}, {0, 0, 0});
     cursor_.y = 0;
+  } else if (strcmp(command, "lspci") == 0) {
+    char s[64];
+    for (int i = 0; i < pci::num_device; i++) {
+      const auto& dev = pci::devices[i];
+      auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
+      sprintf(s, "%02x:%02x.%d vend=%04x head=%02x class=%02x.%02x.%02x\n",
+              dev.bus, dev.device, dev.function, vendor_id, dev.header_type,
+              dev.class_code.base, dev.class_code.sub, dev.class_code.interface);
+      Print(s);
+    }
   } else if (command[0] != 0) {
     Print("no such command: ");
     Print(command);
