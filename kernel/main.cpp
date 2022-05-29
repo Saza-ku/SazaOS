@@ -96,7 +96,7 @@ void InputTextWindow(char c) {
     return;
   }
 
-  auto pos = []() { return Vector2D<int>{8 + 8*text_window_index, 6}; };
+  auto pos = []() { return Vector2D<int>{4 + 8*text_window_index, 6}; };
 
   const int max_chars = (text_window->InnerSize().x - 8) / 8 - 1;
   if (c == '\b' && text_window_index > 0) {
