@@ -6,8 +6,6 @@
 #include "layer.hpp"
 #include "pci.hpp"
 
-#include "logger.hpp"
-
 Terminal::Terminal() {
   window_ = std::make_shared<ToplevelWindow>(
       kColumns * 8 + 8 + ToplevelWindow::kMarginX,
@@ -52,7 +50,6 @@ Rectangle<int> Terminal::InputKey(
     linebuf_[linebuf_index_] = 0;
     linebuf_index_ = 0;
     cursor_.x = 0;
-    Log(kWarn, "line: %s\n", &linebuf_[0]);
     if (cursor_.y < kRows - 1) {
       cursor_.y++;
     } else {
