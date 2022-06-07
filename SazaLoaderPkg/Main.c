@@ -243,7 +243,6 @@ EFI_STATUS OpenBlockIoProtocolForLoadedImage(
   return status;
 }
 
-
 EFI_STATUS ReadBlocks(
       EFI_BLOCK_IO_PROTOCOL* block_io, UINT32 media_id,
       UINTN read_bytes, VOID** buffer) {
@@ -447,7 +446,7 @@ EFI_STATUS EFIAPI UefiMain(
 
   typedef void EntryPointType(const struct FrameBufferConfig*,
                               const struct MemoryMap*,
-                              const VOID*
+                              const VOID*,
                               VOID*);
   EntryPointType* entry_point = (EntryPointType*)entry_addr;
   entry_point(&config, &memmap, acpi_table, volume_image);
