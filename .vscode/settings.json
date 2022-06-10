@@ -14,6 +14,7 @@
     "files.associations": {
       "array": "cpp",
       "cstddef": "cpp",
-      "memory": "cpp"
+      "memory": "cpp",
+      "typeinfo": "cpp"
     }
   }
