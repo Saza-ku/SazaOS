@@ -1,7 +1,6 @@
 #include "fat.hpp"
 
 #include <cstring>
-#include "logger.hpp"
 
 namespace fat {
   BPB* boot_volume_image;
@@ -20,7 +19,6 @@ namespace fat {
   }
 
   void ReadName(const DirectoryEntry& entry, char* base, char* ext) {
-    Log(kError, "ReadName");
     memcpy(base, &entry.name[0], 8);
     base[8] = 0;
     for (int i = 7; i >= 0 && base[i] == 0x20; i--) {
