@@ -236,10 +236,10 @@ EFI_STATUS OpenBlockIoProtocolForLoadedImage(
       loaded_image->DeviceHandle,
       &gEfiBlockIoProtocolGuid,
       (VOID**)block_io,
-      image_handle,
+      image_handle, // agent handle
       NULL,
       EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
-  
+
   return status;
 }
 
@@ -256,10 +256,10 @@ EFI_STATUS ReadBlocks(
   status = block_io->ReadBlocks(
       block_io,
       media_id,
-      0,
+      0, // start LBA
       read_bytes,
       *buffer);
-  
+
   return status;
 }
 
@@ -373,7 +373,7 @@ EFI_STATUS EFIAPI UefiMain(
   if (status == EFI_SUCCESS) {
     status = ReadFile(volume_file, &volume_image);
     if (EFI_ERROR(status)) {
-      Print(L"failed to read volume file: %r\n", status);
+      Print(L"failed to read volume file: %r", status);
       Halt();
     }
   } else {
@@ -390,9 +390,9 @@ EFI_STATUS EFIAPI UefiMain(
       volume_bytes = 16 * 1024 * 1024;
     }
 
-    Print(L"Reading %lu bytes (Present %d, BlockSize %u, LastBlock%u)\n",
+    Print(L"Reading %lu bytes (Present %d, BlockSize %u, LastBlock %u)\n",
         volume_bytes, media->MediaPresent, media->BlockSize, media->LastBlock);
-    
+
     status = ReadBlocks(block_io, media->MediaId, volume_bytes, &volume_image);
     if (EFI_ERROR(status)) {
       Print(L"failed to read blocks: %r\n", status);
